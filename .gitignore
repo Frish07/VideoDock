@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+.qa/
+tools/*.exe
+VideoDock-Windows*.zip
+.env
+.env.*
+!.env.example
