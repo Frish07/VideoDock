@@ -33,6 +33,8 @@ def main():
     subprocess.run([sys.executable, "-m", "PyInstaller", "--clean", "--noconfirm", str(root / "VideoDock.spec")], cwd=root, check=True)
     output = root / "dist" / "VideoDock"
     shutil.copy2(root / "README.md", output / "README.md")
+    shutil.copy2(root / "README.en.md", output / "README.en.md")
+    shutil.copy2(root / "CHECKS.md", output / "CHECKS.md")
     shutil.copy2(root / "THIRD_PARTY_NOTICES.md", output / "THIRD_PARTY_NOTICES.md")
     licenses = output / "licenses"
     licenses.mkdir(exist_ok=True)
@@ -64,9 +66,10 @@ def main():
         details = report.read_text(encoding="utf-8") if report.is_file() else "No UI startup report"
         raise SystemExit(f"Packaged UI startup check failed:\n{details}")
     result = json.loads(report.read_text(encoding="utf-8"))
-    if not result.get("frozen") or not result.get("download_enabled"):
+    if (not result.get("frozen") or not result.get("download_enabled")
+            or result.get("languages") != ["ru", "en"]):
         raise SystemExit(f"Packaged UI startup check failed: {result}")
-    print("Packaged UI startup: OK")
+    print("Packaged UI startup and Russian/English switching: OK")
     print(f"Ready: {output / 'VideoDock.exe'}")
 
 

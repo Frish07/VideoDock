@@ -24,19 +24,24 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
 from .core import DownloadRequest, format_time, normalize_url, resource_root, validate_range
 from .style import STYLE
 from . import __version__
+from .i18n import LANGUAGES, translate
 
 
-def label(text, kind="", wrap=False):
-    widget = QLabel(text)
+def label(text, kind="", wrap=False, *, translatable=True, **values):
+    widget = QLabel(text.format(**values) if values else text)
     widget.setTextFormat(Qt.TextFormat.PlainText)
     widget.setObjectName(kind)
     widget.setWordWrap(wrap)
+    if translatable:
+        widget.setProperty("i18n_setText", text)
+        widget.setProperty("i18n_values", values)
     return widget
 
 
 def button(text, kind="", callback=None):
     widget = QPushButton(text)
     widget.setObjectName(kind)
+    widget.setProperty("i18n_setText", text)
     widget.setCursor(Qt.CursorShape.PointingHandCursor)
     if callback:
         widget.clicked.connect(callback)
@@ -110,6 +115,9 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(900, 660)
         self.setAcceptDrops(True)
         self.store = Store()
+        self.language = self.store.data.get("language", "ru")
+        if self.language not in LANGUAGES:
+            self.language = "ru"
         self.metadata = None
         self.active_action = None
         self.process = None
@@ -125,11 +133,14 @@ class MainWindow(QMainWindow):
         self.latest_file = None
         self.operation_started = 0
         self.last_status = "Вставьте ссылку, чтобы начать."
+        self._status_source = self.last_status
+        self._status_values = {}
+        self._status_kind = "status"
         self.timer = QTimer(self)
         self.timer.setInterval(200)
         self.timer.timeout.connect(self.poll_events)
         self.build_ui()
-        self.update_summary()
+        self.retranslate_ui()
 
     def build_ui(self):
         root = QWidget()
@@ -161,8 +172,18 @@ class MainWindow(QMainWindow):
             navs.addButton(nav)
             side.addWidget(nav)
         side.addStretch()
+        side.addWidget(label("Язык", "small"))
+        self.language_combo = QComboBox()
+        self.language_combo.setObjectName("languageSelector")
+        for code, name in LANGUAGES.items():
+            self.language_combo.addItem(name, code)
+        self.language_combo.setCurrentIndex(self.language_combo.findData(self.language))
+        self.bind(self.language_combo, "setAccessibleName", "Язык интерфейса")
+        self.language_combo.currentIndexChanged.connect(lambda *_: self.set_language(self.language_combo.currentData()))
+        side.addWidget(self.language_combo)
+        side.addSpacing(12)
         side.addWidget(label("●  Локальное приложение", "small"))
-        side.addWidget(label(f"Версия {__version__}", "small"))
+        side.addWidget(label("Версия {version}", "small", version=__version__))
         outer.addWidget(sidebar)
         self.pages = QStackedWidget()
         outer.addWidget(self.pages, 1)
@@ -191,8 +212,8 @@ class MainWindow(QMainWindow):
         self.source_card, source = card("01   Ссылка на видео")
         row = QHBoxLayout()
         self.url = QLineEdit()
-        self.url.setAccessibleName("Ссылка на YouTube")
-        self.url.setPlaceholderText("Вставьте ссылку youtube.com или youtu.be…")
+        self.bind(self.url, "setAccessibleName", "Ссылка на YouTube")
+        self.bind(self.url, "setPlaceholderText", "Вставьте ссылку youtube.com или youtu.be…")
         self.url.setClearButtonEnabled(True)
         self.url.textChanged.connect(self.url_changed)
         self.url.returnPressed.connect(self.inspect)
@@ -242,14 +263,14 @@ class MainWindow(QMainWindow):
         quality_col = QVBoxLayout()
         quality_col.addWidget(label("Качество", "muted"))
         self.quality = QComboBox()
-        self.quality.setAccessibleName("Качество видео")
+        self.bind(self.quality, "setAccessibleName", "Качество видео")
         self.quality.addItem("Исходное / лучшее", None)
         self.quality.currentIndexChanged.connect(self.update_summary)
         quality_col.addWidget(self.quality)
         container_col = QVBoxLayout()
         container_col.addWidget(label("Формат файла", "muted"))
         self.container = QComboBox()
-        self.container.setAccessibleName("Формат файла")
+        self.bind(self.container, "setAccessibleName", "Формат файла")
         self.container.addItems(["MP4", "MKV", "WEBM"])
         self.container.currentIndexChanged.connect(self.update_summary)
         container_col.addWidget(self.container)
@@ -261,6 +282,7 @@ class MainWindow(QMainWindow):
         options_row.addWidget(self.format_card, 6)
         self.trim_card, trim = card("03   Нужный фрагмент")
         self.trim = QCheckBox("Скачать только часть видео")
+        self.bind(self.trim, "setText", "Скачать только часть видео")
         self.trim.toggled.connect(self.trim_changed)
         trim.addWidget(self.trim)
         times = QHBoxLayout()
@@ -269,8 +291,8 @@ class MainWindow(QMainWindow):
             col = QVBoxLayout()
             col.addWidget(label(title, "muted"))
             entry = QLineEdit()
-            entry.setPlaceholderText(placeholder)
-            entry.setAccessibleName(f"{title} фрагмента")
+            self.bind(entry, "setPlaceholderText", placeholder)
+            self.bind(entry, "setAccessibleName", f"{title} фрагмента")
             entry.setEnabled(False)
             entry.textChanged.connect(self.update_summary)
             col.addWidget(entry)
@@ -286,13 +308,13 @@ class MainWindow(QMainWindow):
         folder_row = QHBoxLayout()
         downloads = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation) or str(Path.home() / "Downloads")
         self.directory = QLineEdit(self.store.data.get("directory") or downloads)
-        self.directory.setAccessibleName("Папка сохранения")
+        self.bind(self.directory, "setAccessibleName", "Папка сохранения")
         self.directory.textChanged.connect(self.update_summary)
         folder_row.addWidget(self.directory, 1)
         self.browse_button = button("Выбрать папку…", callback=self.choose_folder)
         folder_row.addWidget(self.browse_button)
         folder.addLayout(folder_row)
-        self.directory.setToolTip("По умолчанию — «Загрузки». Выбранная папка запоминается.")
+        self.bind(self.directory, "setToolTip", "По умолчанию — «Загрузки». Выбранная папка запоминается.")
         content.addWidget(self.folder_card)
         content.addStretch()
         scroll.setWidget(body)
@@ -361,6 +383,69 @@ class MainWindow(QMainWindow):
         about_layout.addStretch()
         about_layout.addWidget(label(f"VideoDock {__version__}", "small"))
         self.pages.addWidget(about)
+        # Dynamic fields are rendered from state, not their initial placeholders.
+        for widget in [self.thumbnail, self.video_title, self.video_details, self.quality_hint,
+                       self.trim_hint, self.status_label, self.elapsed, self.summary,
+                       self.log_button, self.cancel_button]:
+            widget.setProperty("i18n_setText", None)
+
+    def t(self, source, **values):
+        return translate(source, self.language, **values)
+
+    def bind(self, widget, method, source):
+        widget.setProperty("i18n_" + method, source)
+        getattr(widget, method)(self.t(source))
+
+    def translate_widgets(self, root):
+        for widget in [root, *root.findChildren(QWidget)]:
+            for method in ["setText", "setPlaceholderText", "setAccessibleName", "setToolTip"]:
+                source = widget.property("i18n_" + method)
+                if source is not None:
+                    values = (widget.property("i18n_values") or {}) if method == "setText" else {}
+                    getattr(widget, method)(self.t(source, **values))
+
+    def set_language(self, language):
+        if language not in LANGUAGES or language == self.language:
+            return
+        self.language = language
+        self.store.data["language"] = language
+        self.store.save()
+        index = self.language_combo.findData(language)
+        blocked = self.language_combo.blockSignals(True)
+        self.language_combo.setCurrentIndex(index)
+        self.language_combo.blockSignals(blocked)
+        self.retranslate_ui()
+
+    def retranslate_ui(self):
+        self.setWindowTitle(self.t("VideoDock — YouTube загрузчик"))
+        self.translate_widgets(self.centralWidget())
+        blocked = self.quality.blockSignals(True)
+        self.quality.setItemText(0, self.t("Исходное / лучшее"))
+        self.quality.blockSignals(blocked)
+        self.refresh_video_details()
+        self.refresh_quality_hint()
+        self.update_summary()
+        self.render_status()
+        self.update_log_button()
+        self.cancel_button.setText(self.t("Отмена…" if self.cancelled and self.active_action else "Отменить"))
+        if self.pages.currentIndex() == 1:
+            self.render_history()
+
+    def refresh_video_details(self):
+        if self.metadata:
+            self.video_title.setText(self.metadata["title"])
+            heights = self.metadata.get("heights", [])
+            top = "  ·  " + self.t("до {height}p", height=heights[0]) if heights else ""
+            self.video_details.setText(f"{self.metadata['channel']}  ·  {format_time(self.metadata.get('duration'))}{top}")
+        else:
+            self.video_title.setText(self.t("Здесь появится ваше видео"))
+            self.video_details.setText(self.t("Нажмите «Найти видео», чтобы выбрать доступное качество."))
+
+    def refresh_quality_hint(self):
+        source = ("MP3 — 192 кбит/с. M4A и Opus — исходный звук, когда доступен." if self.audio_mode.isChecked()
+                  else "Доступные разрешения этого ролика." if self.metadata
+                  else "Разрешения от 144p — после проверки ссылки.")
+        self.quality_hint.setText(self.t(source))
 
     def show_page(self, index):
         if index == 1:
@@ -392,11 +477,11 @@ class MainWindow(QMainWindow):
             if not isinstance(entry, dict) or not entry.get("path"):
                 continue
             frame, row = card()
-            row.addWidget(label(entry.get("title", "Видео"), "cardTitle", True))
+            row.addWidget(label(entry.get("title") or self.t("Видео"), "cardTitle", True, translatable=False))
             path = entry["path"]
-            row.addWidget(label(path, "small", True))
+            row.addWidget(label(path, "small", True, translatable=False))
             bottom = QHBoxLayout()
-            bottom.addWidget(label(f"{entry.get('container', '').upper()}  ·  {self.size_text(entry.get('size'))}  ·  {entry.get('date', '')}", "muted"), 1)
+            bottom.addWidget(label(f"{entry.get('container', '').upper()}  ·  {self.size_text(entry.get('size'))}  ·  {entry.get('date', '')}", "muted", translatable=False), 1)
             open_btn = button("Открыть", callback=lambda checked=False, p=path: self.open_path(p))
             open_btn.setEnabled(Path(path).is_file())
             bottom.addWidget(open_btn)
@@ -406,6 +491,7 @@ class MainWindow(QMainWindow):
         rows.addStretch()
         scroll.setWidget(inner)
         self.history_layout.addWidget(scroll, 1)
+        self.translate_widgets(self.history_page)
 
     def paste_url(self):
         self.url.setText(QApplication.clipboard().text().strip())
@@ -414,12 +500,12 @@ class MainWindow(QMainWindow):
 
     def url_changed(self):
         self.metadata = None
-        self.video_title.setText("Здесь появится ваше видео")
-        self.video_details.setText("Нажмите «Найти видео», чтобы выбрать доступное качество.")
+        self.refresh_video_details()
         self.thumbnail.clear()
         self.thumbnail.setText("▶")
         self.quality.clear()
-        self.quality.addItem("Исходное / лучшее", None)
+        self.quality.addItem(self.t("Исходное / лучшее"), None)
+        self.refresh_quality_hint()
         self.update_summary()
 
     def mode_changed(self):
@@ -432,7 +518,7 @@ class MainWindow(QMainWindow):
             self.container.setCurrentText(selected)
         self.container.blockSignals(False)
         self.quality.setEnabled(not audio)
-        self.quality_hint.setText("MP3 — 192 кбит/с. M4A и Opus — исходный звук, когда доступен." if audio else "Скачивается выбранное разрешение или ближайшее доступное ниже.")
+        self.refresh_quality_hint()
         self.update_summary()
 
     def trim_changed(self, checked):
@@ -444,28 +530,28 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "summary"):
             return
         audio = self.audio_mode.isChecked()
-        text = f"{'Аудио' if audio else self.quality.currentText()}  ·  {self.container.currentText()}"
+        text = f"{self.t('Аудио') if audio else self.quality.currentText()}  ·  {self.container.currentText()}"
         if self.trim.isChecked():
             try:
                 start, end = validate_range(self.start.text(), self.end.text(), (self.metadata or {}).get("duration"))
-                text += f"  ·  {format_time(start)} → {format_time(end) if end is not None else 'конец'}"
+                text += f"  ·  {format_time(start)} → {format_time(end) if end is not None else self.t('конец')}"
                 duration = end - start if end is not None else None
-                self.trim_hint.setText(f"Длительность фрагмента: {format_time(duration)}" if duration is not None else "Пустой конец — до конца ролика. Точная обрезка включена.")
+                self.trim_hint.setText(self.t("Длительность фрагмента: {duration}", duration=format_time(duration)) if duration is not None else self.t("Пустой конец — до конца ролика. Точная обрезка включена."))
                 self.trim_hint.setObjectName("small")
             except ValueError as exc:
-                self.trim_hint.setText(str(exc))
+                self.trim_hint.setText(self.t(str(exc)))
                 self.trim_hint.setObjectName("error")
             self.trim_hint.style().unpolish(self.trim_hint)
             self.trim_hint.style().polish(self.trim_hint)
         else:
-            self.trim_hint.setText("Например, 1:45 → 6:50. Пустой конец — до конца ролика.")
+            self.trim_hint.setText(self.t("Например, 1:45 → 6:50. Пустой конец — до конца ролика."))
             self.trim_hint.setObjectName("small")
             self.trim_hint.style().unpolish(self.trim_hint)
             self.trim_hint.style().polish(self.trim_hint)
         self.summary.setText(text)
 
     def choose_folder(self):
-        selected = QFileDialog.getExistingDirectory(self, "Куда сохранить файл", self.directory.text())
+        selected = QFileDialog.getExistingDirectory(self, self.t("Куда сохранить файл"), self.directory.text())
         if selected:
             self.directory.setText(selected)
             self.remember_directory()
@@ -474,20 +560,42 @@ class MainWindow(QMainWindow):
         self.store.data["directory"] = self.directory.text().strip()
         self.store.save()
 
-    def set_status(self, text, kind="status"):
+    def set_status(self, text, kind="status", **values):
+        self._status_source = text
+        self._status_values = values
+        self._status_kind = kind
+        self.render_status()
+
+    def render_status(self):
+        if self._status_source == "@progress":
+            event = self._status_values["event"]
+            text = self.t("Скачиваем поток: {downloaded}", downloaded=self.size_text(event.get("downloaded")))
+            if event.get("total"):
+                text += f" / {self.size_text(event['total'])}"
+                if event.get("percent") is not None:
+                    text += f"  ·  {event['percent']:.0f}%"
+            if event.get("speed"):
+                text += self.t("  ·  {speed}/с", speed=self.size_text(event["speed"]))
+            if event.get("eta") is not None:
+                text += self.t("  ·  осталось {eta}", eta=format_time(event["eta"]))
+        else:
+            values = dict(self._status_values)
+            if "size" in values:
+                values["size"] = self.size_text(values["size"])
+            text = self.t(self._status_source, **values)
         self.last_status = text
         # Long extractor diagnostics belong in the expandable log.
         self.status_label.setText(text.split("\n\n")[0][:420])
         self.status_label.setToolTip(text)
-        self.status_label.setObjectName(kind)
+        self.status_label.setObjectName(self._status_kind)
         self.status_label.style().unpolish(self.status_label)
         self.status_label.style().polish(self.status_label)
 
     def report_error(self, message):
         self.failed = True
         self.pending_download = False
-        self.log.append(message)
-        self.store.save_error(message, self.url.text(), self.log.toPlainText())
+        self.log.append(self.t(message))
+        self.store.save_error(self.t(message), self.url.text(), self.log.toPlainText())
         self.set_status(message, "error")
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
@@ -498,7 +606,7 @@ class MainWindow(QMainWindow):
         self.download_button.setEnabled(not busy)
         self.cancel_button.setVisible(busy)
         self.cancel_button.setEnabled(True)
-        self.cancel_button.setText("Отменить")
+        self.cancel_button.setText(self.t("Отменить"))
 
     def inspect(self):
         if self.active_action:
@@ -606,18 +714,16 @@ class MainWindow(QMainWindow):
         elif kind == "metadata":
             self.succeeded = True
             self.metadata = event
-            self.video_title.setText(event["title"])
+            self.refresh_video_details()
             heights = event.get("heights", [])
-            top = f"  ·  до {heights[0]}p" if heights else ""
-            self.video_details.setText(f"{event['channel']}  ·  {format_time(event.get('duration'))}{top}")
             pix = QPixmap(event.get("thumbnail", ""))
             if not pix.isNull():
                 self.thumbnail.setPixmap(pix.scaled(self.thumbnail.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
             self.quality.clear()
-            self.quality.addItem("Исходное / лучшее", None)
+            self.quality.addItem(self.t("Исходное / лучшее"), None)
             for height in heights:
                 self.quality.addItem(f"{height}p" + ("  ·  4K" if height == 2160 else "  ·  8K" if height == 4320 else ""), height)
-            self.quality_hint.setText("Доступные разрешения этого ролика." if not self.audio_mode.isChecked() else "MP3 — 192 кбит/с. M4A и Opus — исходный звук, когда доступен.")
+            self.refresh_quality_hint()
             self.set_status("Видео найдено. Выберите параметры и нажмите «Скачать».", "success")
             self.update_summary()
         elif kind == "progress":
@@ -627,20 +733,13 @@ class MainWindow(QMainWindow):
                 self.progress.setValue(int(percent))
             else:
                 self.progress.setRange(0, 0)
-            text = f"Скачиваем поток: {self.size_text(event.get('downloaded'))}"
-            if event.get("total"):
-                text += f" / {self.size_text(event['total'])}  ·  {percent:.0f}%"
-            if event.get("speed"):
-                text += f"  ·  {self.size_text(event['speed'])}/с"
-            if event.get("eta") is not None:
-                text += f"  ·  осталось {format_time(event['eta'])}"
-            self.set_status(text)
+            self.set_status("@progress", event=event)
         elif kind == "error":
             self.report_error(event["message"])
         elif kind == "complete":
             self.succeeded = True
             self.latest_file = event["path"]
-            self.set_status(f"Готово! Файл сохранён · {self.size_text(event.get('size'))}", "success")
+            self.set_status("Готово! Файл сохранён · {size}", "success", size=event.get("size"))
             self.progress.setRange(0, 100)
             self.progress.setValue(100)
             self.open_file.show()
@@ -698,7 +797,7 @@ class MainWindow(QMainWindow):
         self.cancelled = True
         self.pending_download = False
         self.cancel_button.setEnabled(False)
-        self.cancel_button.setText("Отмена…")
+        self.cancel_button.setText(self.t("Отмена…"))
         self.set_status("Останавливаем загрузку…")
         pid = self.process.processId()
         if os.name == "nt" and pid:
@@ -716,15 +815,17 @@ class MainWindow(QMainWindow):
             self.process.kill()
 
     def toggle_log(self):
-        self.log.setVisible(not self.log.isVisible())
-        self.log_button.setText("Скрыть журнал" if self.log.isVisible() else "Журнал")
+        self.log.setVisible(self.log.isHidden())
+        self.update_log_button()
 
-    @staticmethod
-    def size_text(size):
+    def update_log_button(self):
+        self.log_button.setText(self.t("Журнал" if self.log.isHidden() else "Скрыть журнал"))
+
+    def size_text(self, size):
         value = float(size or 0)
         for unit in ["Б", "КБ", "МБ", "ГБ"]:
             if value < 1024 or unit == "ГБ":
-                return f"{value:.1f} {unit}" if unit != "Б" else f"{value:.0f} Б"
+                return f"{value:.1f} {self.t(unit)}" if unit != "Б" else f"{value:.0f} {self.t('Б')}"
             value /= 1024
 
     def open_path(self, path):
@@ -780,10 +881,26 @@ def launch(initial_url=None, check_path=None):
     window.show()
     if check_path:
         def check_startup():
-            result = {"version": __version__, "frozen": bool(getattr(sys, "frozen", False)),
-                      "title": window.windowTitle(), "download_enabled": window.download_button.isEnabled()}
-            Path(check_path).write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
-            window.close()
+            try:
+                original_language = window.language
+                checked_languages = []
+                for language in LANGUAGES:
+                    window.set_language(language)
+                    if (window.inspect_button.text() != translate("Найти видео", language)
+                            or window.trim.text() != translate("Скачать только часть видео", language)
+                            or not window.language_combo.isEnabled()):
+                        raise RuntimeError(f"UI language check failed: {language}")
+                    checked_languages.append(language)
+                window.set_language(original_language)
+                result = {"version": __version__, "frozen": bool(getattr(sys, "frozen", False)),
+                          "title": window.windowTitle(), "download_enabled": window.download_button.isEnabled(),
+                          "languages": checked_languages}
+                Path(check_path).write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
+                window.close()
+            except Exception:
+                import traceback
+                Path(check_path).write_text(traceback.format_exc(), encoding="utf-8")
+                app.exit(1)
         QTimer.singleShot(100, check_startup)
     elif initial_url:
         window.url.setText(initial_url)
