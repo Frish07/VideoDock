@@ -159,7 +159,10 @@ def download(request: DownloadRequest, events: EventWriter, staging: Path):
         if request.container == "mp4":
             options["format_sort"] = ["res", "hdr:SDR", "fps", "vcodec:h264", "lang", "channels:2", "acodec:aac"]
     events.emit("status", message="Подключаемся к YouTube…")
+    finished = []
     with YoutubeDL(options) as ydl:
+        # yt-dlp reports the final path after merging, conversion and moves.
+        ydl.add_post_hook(finished.append)
         info = ydl.extract_info(normalize_url(request.url), download=False)
         check_video(info)
         first, last = request.validate(info.get("duration"))
@@ -171,10 +174,11 @@ def download(request: DownloadRequest, events: EventWriter, staging: Path):
             events.emit("status", message="Скачиваем видео…" if not request.audio else "Скачиваем аудио…")
         # Reuse the extracted formats and URLs instead of making a second network extraction.
         ydl.process_ie_result(info, download=True)
-    candidates = [path for path in staging.iterdir() if path.is_file() and path.suffix.lower() == f".{request.container}"]
-    if not candidates:
+    if len(finished) != 1:
         raise RuntimeError("Загрузка завершилась без готового файла. Попробуйте другой формат.")
-    final = max(candidates, key=lambda path: path.stat().st_mtime)
+    final = Path(finished[0]).resolve()
+    if final.parent != staging.resolve() or final.suffix.lower() != f".{request.container}" or not final.is_file():
+        raise RuntimeError("Загрузка завершилась без готового файла. Попробуйте другой формат.")
     if not final.stat().st_size:
         raise RuntimeError("Получен пустой файл. Повторите загрузку.")
     if not request.audio and request.container == "mp4":
