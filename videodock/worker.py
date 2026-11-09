@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 
 from .core import (DownloadRequest, available_heights, find_ffmpeg, find_node,
                    format_selector, friendly_error, normalize_url, unique_destination)
+from .media import ensure_compatible_mp4
 
 
 class EventWriter:
@@ -155,6 +156,8 @@ def download(request: DownloadRequest, events: EventWriter, staging: Path):
     else:
         options["merge_output_format"] = request.container
         options["postprocessors"] = [{"key": "FFmpegVideoRemuxer", "preferedformat": request.container}]
+        if request.container == "mp4":
+            options["format_sort"] = ["res", "hdr:SDR", "fps", "vcodec:h264", "lang", "channels:2", "acodec:aac"]
     events.emit("status", message="Подключаемся к YouTube…")
     with YoutubeDL(options) as ydl:
         info = ydl.extract_info(normalize_url(request.url), download=False)
@@ -167,13 +170,16 @@ def download(request: DownloadRequest, events: EventWriter, staging: Path):
         else:
             events.emit("status", message="Скачиваем видео…" if not request.audio else "Скачиваем аудио…")
         # Reuse the extracted formats and URLs instead of making a second network extraction.
-        result = ydl.process_ie_result(info, download=True)
+        ydl.process_ie_result(info, download=True)
     candidates = [path for path in staging.iterdir() if path.is_file() and path.suffix.lower() == f".{request.container}"]
     if not candidates:
         raise RuntimeError("Загрузка завершилась без готового файла. Попробуйте другой формат.")
     final = max(candidates, key=lambda path: path.stat().st_mtime)
     if not final.stat().st_size:
         raise RuntimeError("Получен пустой файл. Повторите загрузку.")
+    if not request.audio and request.container == "mp4":
+        events.emit("status", message="Подготавливаем совместимый MP4…")
+        ensure_compatible_mp4(final, Path(options["ffmpeg_location"]))
     # Publish atomically without leaving an empty/partial destination on cancellation.
     destination = unique_destination(output, final.name)
     while True:

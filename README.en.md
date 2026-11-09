@@ -26,7 +26,8 @@ After downloading, open the file or its folder. The **Downloads** page shows the
 ## Quality and formats
 
 - **Original / best** selects the highest available resolution. A selected resolution is an upper limit: the chosen resolution or the closest available lower one is used. YouTube's lowest standard option is usually 144p.
-- Video: **MP4, MKV, WebM**, with audio included. Full downloads keep the source codecs without re-encoding. MP4 may contain modern AV1/VP9 codecs, so playback support depends on your player. MKV supports the broadest set of source streams; WebM requires compatible streams.
+- **MP4** uses H.264 video and AAC audio (mono or stereo) for playback in built-in players. Full downloads copy compatible tracks and convert the others automatically while retaining the resolution.
+- **MKV** supports the broadest set of source streams. **WebM** uses source streams compatible with that container.
 - Audio: **MP3 at 192 kbps, M4A, WAV, Opus**. M4A and Opus keep the source codec when possible; otherwise the audio is converted. WAV does not improve the source's quality.
 - Clips use FFmpeg with precise trimming and re-encoding. High resolutions and long clips can take longer to process. Depending on the media server, more data than the clip itself may be transferred.
 - Progress is shown per stream. Video and audio may be downloaded in sequence; trimming and merging show an activity indicator and elapsed time.

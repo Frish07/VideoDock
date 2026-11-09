@@ -76,8 +76,8 @@ ENGLISH = {
     "Видео и звук, которые всегда под рукой": "Your videos and audio, always at hand",
     "1. Вставьте ссылку на видео или перетащите её в окно.\n2. Нажмите «Найти видео» и выберите качество.\n3. При желании задайте фрагмент и нажмите «Скачать».":
         "1. Paste a video link or drag it into the window.\n2. Click “Find video” and choose the quality.\n3. Optionally set a clip, then click “Download”.",
-    "Видео: MP4, MKV, WebM. Аудио: MP3, M4A, WAV, Opus.\nИсходное качество — максимальное из доступных у ролика. Формат MP4 сохраняет исходные кодеки; совместимость зависит от проигрывателя. WAV занимает больше места, но не повышает качество источника.":
-        "Video: MP4, MKV, WebM. Audio: MP3, M4A, WAV, Opus.\nOriginal quality means the best available quality of the video. MP4 keeps the original codecs; playback support depends on your player. WAV uses more space but does not improve source quality.",
+    "Видео: MP4, MKV, WebM. Аудио: MP3, M4A, WAV, Opus.\nИсходное качество выбирает максимальное доступное разрешение. MP4 сохраняется с видео H.264 и звуком AAC для совместимости с проигрывателями. WAV занимает больше места.":
+        "Video: MP4, MKV, WebM. Audio: MP3, M4A, WAV, Opus.\nOriginal quality uses the highest available resolution. MP4 uses H.264 video and AAC audio for player compatibility. WAV takes up more space.",
     "Для фрагментов используется точная обрезка с перекодированием: это может занять время. Прямые эфиры, закрытые ролики и платный контент не поддерживаются. YouTube иногда ограничивает загрузки из отдельных сетей.":
         "Clips use precise trimming with re-encoding, which can take time. Live streams, private videos and paid content are not supported. YouTube may restrict downloads from some networks.",
     "Настройки и список последних файлов хранятся на этом компьютере. Видео загружаются напрямую с YouTube.\nОснова приложения: yt-dlp, FFmpeg, Qt for Python и Node.js.":
@@ -96,6 +96,7 @@ ENGLISH = {
     "Скачиваем аудио…": "Downloading audio…",
     "Скачиваем выбранный фрагмент. Точная обрезка может занять время…": "Downloading your clip. Precise trimming may take a while…",
     "Поток получен. Обрабатываем файл…": "Stream downloaded. Processing the file…",
+    "Подготавливаем совместимый MP4…": "Preparing a compatible MP4…",
     "Обрабатываем аудио…": "Processing audio…",
     "Объединяем видео и звук…": "Merging video and audio…",
     "Скачиваем поток: {downloaded}": "Downloading stream: {downloaded}",
@@ -127,6 +128,8 @@ ENGLISH = {
     "Временная папка должна находиться в папке сохранения.": "The temporary folder must be inside the download folder.",
     "Загрузка завершилась без готового файла. Попробуйте другой формат.": "No finished file was produced. Try another format.",
     "Получен пустой файл. Повторите загрузку.": "The downloaded file is empty. Try again.",
+    "Не удалось проверить видео и звук в файле MP4.": "Could not verify the video and audio in the MP4 file.",
+    "Не удалось подготовить совместимый MP4.": "Could not prepare a compatible MP4 file.",
     "Неизвестная операция.": "Unknown operation.",
     "YouTube запросил подтверждение входа. Попробуйте позже или другую сеть.": "YouTube requires sign-in verification. Try again later or use another network.",
     "Это закрытое видео. Нужен ролик с открытым доступом.": "This video is private. Choose a publicly available video.",
