@@ -2,7 +2,7 @@
 
 [Документация на русском](README.md)
 
-A Windows 10/11 desktop YouTube downloader with Russian and English interfaces.
+A Windows 10/11 desktop downloader for public videos from YouTube, TikTok, Instagram and Facebook. The interface is available in Russian and English.
 
 ## Run the app
 
@@ -16,7 +16,7 @@ The app's pages, hints, statuses and errors are translated. Video titles, file p
 
 ## Download a video or audio
 
-1. Paste a YouTube link or drag it into the window, then click **Find video**.
+1. Paste a video link from YouTube, TikTok, Instagram or Facebook, or drag it into the window, then click **Find video**.
 2. Choose **Video with audio** or **Audio only**, the quality and file format.
 3. To save a clip, enable **Download only part of the video** and enter a start and end, such as `1:45` and `6:50`. Hours, minutes, seconds and fractional seconds are supported. A blank start means 0:00; a blank end means the end of the video.
 4. Choose a folder and click **Download**. The default is your system **Downloads** folder. Other folders are remembered.
@@ -28,15 +28,17 @@ After downloading, open the file or its folder. The **Downloads** page shows the
 - **Original / best** selects the highest available resolution. A selected resolution is an upper limit: the chosen resolution or the closest available lower one is used. YouTube's lowest standard option is usually 144p.
 - **MP4** uses H.264 video and AAC audio (mono or stereo) for playback in built-in players. Full downloads copy compatible tracks and convert the others automatically while retaining the resolution.
 - **MKV** supports the broadest set of source streams. **WebM** uses source streams compatible with that container.
-- Audio: **MP3 at 192 kbps, M4A, WAV, Opus**. M4A and Opus keep the source codec when possible; otherwise the audio is converted. WAV does not improve the source's quality.
+- Audio exports to **MP3, M4A, WAV or Opus**. MP3 conversion uses 192 kbps. Compatible source audio is copied without re-encoding.
 - Clips use FFmpeg with precise trimming and re-encoding. High resolutions and long clips can take longer to process. Depending on the media server, more data than the clip itself may be transferred.
 - Progress is shown per stream. Video and audio may be downloaded in sequence; trimming and merging show an activity indicator and elapsed time.
 
-Ongoing live streams, private videos and paid content are not supported. YouTube may require sign-in or restrict a network. Open **Log** for details. The app does not automatically read browser cookies. Download content you are entitled to save.
+Use a link to an individual public video. Instagram and Facebook also support Reels and posts with a single video. Available formats and resolutions depend on the source. Choose video mode for silent TikTok, Instagram and Facebook clips.
+
+A site may require sign-in or restrict access to a video. Open **Log** for details. Download content you are entitled to save.
 
 ## Run from source
 
-Requires Python 3.10+ (tested with 3.13) and Node.js 22+ on PATH.
+Requires Python 3.11+ (tested with 3.13) and Node.js 22+ on PATH.
 
 ```powershell
 python -m venv .venv

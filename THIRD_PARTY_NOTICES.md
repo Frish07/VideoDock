@@ -9,6 +9,7 @@
 | Qt | Графические библиотеки | LGPLv3/GPLv3/commercial, https://code.qt.io/cgit/qt/ |
 | yt-dlp | Получение видео | Unlicense и лицензии включённых компонентов, https://github.com/yt-dlp/yt-dlp |
 | yt-dlp-ejs | JavaScript-проверки YouTube | https://github.com/yt-dlp/ejs |
+| curl-cffi / cffi / pycparser | Сетевые запросы к источникам видео | MIT и лицензии включённых компонентов, https://github.com/lexiforest/curl_cffi |
 | imageio-ffmpeg | Поставка FFmpeg | BSD-2-Clause, https://github.com/imageio/imageio-ffmpeg |
 | FFmpeg | Объединение, обрезка, конвертация | GPL/LGPL в зависимости от конфигурации; конфигурация доступна через `_internal/tools/ffmpeg.exe -version`. https://ffmpeg.org/legal.html, https://github.com/imageio/imageio-binaries |
 | Node.js | Выполнение EJS | MIT и лицензии включённых компонентов, https://github.com/nodejs/node/blob/main/LICENSE |

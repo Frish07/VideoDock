@@ -68,3 +68,10 @@ class MP4CompatibilityTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Не удалось проверить видео и звук"):
             ensure_compatible_mp4(self.source, self.ffmpeg)
         self.assertEqual(self.source.read_bytes(), original)
+
+    def test_explicitly_silent_source_still_exports_mp4(self):
+        self.make_mp4(video_codec="libvpx-vp9", audio_codec=None)
+        ensure_compatible_mp4(self.source, self.ffmpeg, allow_silent=True)
+        report = self.run_ffmpeg("-i", self.source, "-xerror", "-f", "null", "-").stderr.partition("Stream mapping:")[0]
+        self.assertIn("Video: h264", report)
+        self.assertNotIn("Audio:", report)

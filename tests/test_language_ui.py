@@ -41,7 +41,7 @@ class LanguageUiTests(unittest.TestCase):
         self.assertEqual(window.language, "en")
         self.assertEqual(window.inspect_button.text(), "Find video")
         self.assertEqual(window.trim.text(), "Download only part of the video")
-        self.assertEqual(window.url.accessibleName(), "YouTube link")
+        self.assertEqual(window.url.accessibleName(), "Video link")
         self.assertEqual(window.end.placeholderText(), "Until the end")
         self.assertIn("Choose folder", window.browse_button.text())
         self.assertEqual(json.loads(window.store.path.read_text(encoding="utf-8"))["language"], "en")
@@ -97,9 +97,9 @@ class LanguageUiTests(unittest.TestCase):
         self.assertIn("192 kbps", window.quality_hint.text())
         window.url.setText("https://example.com/not-youtube")
         window.start_download()
-        self.assertEqual(window.last_status, "Only youtube.com and youtu.be links are supported.")
+        self.assertEqual(window.last_status, "VideoDock supports links from YouTube, TikTok, Instagram and Facebook.")
         window.set_language("ru")
-        self.assertEqual(window.last_status, "Поддерживаются ссылки youtube.com и youtu.be.")
+        self.assertEqual(window.last_status, "Поддерживаются ссылки YouTube, TikTok, Instagram и Facebook.")
 
     def test_history_content_and_about_page_survive_switching(self):
         window = self.window

@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from .core import (DownloadRequest, available_heights, find_ffmpeg, find_node,
-                   format_selector, friendly_error, normalize_url, unique_destination)
+                   format_selector, friendly_error, parse_video_url, unique_destination)
 from .media import ensure_compatible_mp4
 
 
@@ -80,9 +80,10 @@ def diagnose_tools(events: EventWriter):
 
 def inspect_video(url: str, events: EventWriter, workdir: Path):
     from yt_dlp import YoutubeDL
+    url, platform = parse_video_url(url)
     events.emit("status", message="Получаем информацию о видео…")
     with YoutubeDL(base_options(events)) as ydl:
-        info = ydl.extract_info(normalize_url(url), download=False)
+        info = ydl.extract_info(url, download=False)
     check_video(info)
     thumbnail = ""
     thumb_url = info.get("thumbnail", "")
@@ -100,8 +101,8 @@ def inspect_video(url: str, events: EventWriter, workdir: Path):
         except Exception:
             pass  # Preview must never prevent a download.
     result = {
-        "url": normalize_url(url), "id": info["id"], "title": info.get("title", "Видео"),
-        "channel": info.get("channel") or info.get("uploader") or "YouTube",
+        "url": url, "id": info["id"], "title": info.get("title") or platform,
+        "channel": info.get("channel") or info.get("uploader") or info.get("uploader_id") or platform,
         "duration": info.get("duration"), "heights": available_heights(info.get("formats", [])),
         "thumbnail": thumbnail,
     }
@@ -113,6 +114,8 @@ def download(request: DownloadRequest, events: EventWriter, staging: Path):
     from yt_dlp.utils import download_range_func
 
     request.validate()
+    url, platform = parse_video_url(request.url)
+    allow_silent = platform != "YouTube"
     output = Path(request.directory).expanduser().resolve()
     output.mkdir(parents=True, exist_ok=True)
     if not output.is_dir():
@@ -143,7 +146,7 @@ def download(request: DownloadRequest, events: EventWriter, staging: Path):
 
     options = base_options(events)
     options.update({
-        "format": format_selector(request.height, request.container, request.audio),
+        "format": format_selector(request.height, request.container, request.audio, allow_silent=allow_silent),
         "outtmpl": str(staging / "%(title).110B [%(id)s].%(ext)s"),
         "progress_hooks": [progress], "postprocessor_hooks": [postprocess],
         "concurrent_fragment_downloads": 4,
@@ -158,12 +161,12 @@ def download(request: DownloadRequest, events: EventWriter, staging: Path):
         options["postprocessors"] = [{"key": "FFmpegVideoRemuxer", "preferedformat": request.container}]
         if request.container == "mp4":
             options["format_sort"] = ["res", "hdr:SDR", "fps", "vcodec:h264", "lang", "channels:2", "acodec:aac"]
-    events.emit("status", message="Подключаемся к YouTube…")
+    events.emit("status", message="Подключаемся к источнику…")
     finished = []
     with YoutubeDL(options) as ydl:
         # yt-dlp reports the final path after merging, conversion and moves.
         ydl.add_post_hook(finished.append)
-        info = ydl.extract_info(normalize_url(request.url), download=False)
+        info = ydl.extract_info(url, download=False)
         check_video(info)
         first, last = request.validate(info.get("duration"))
         if request.trim:
@@ -173,7 +176,7 @@ def download(request: DownloadRequest, events: EventWriter, staging: Path):
         else:
             events.emit("status", message="Скачиваем видео…" if not request.audio else "Скачиваем аудио…")
         # Reuse the extracted formats and URLs instead of making a second network extraction.
-        ydl.process_ie_result(info, download=True)
+        result = ydl.process_ie_result(info, download=True)
     if len(finished) != 1:
         raise RuntimeError("Загрузка завершилась без готового файла. Попробуйте другой формат.")
     final = Path(finished[0]).resolve()
@@ -183,7 +186,8 @@ def download(request: DownloadRequest, events: EventWriter, staging: Path):
         raise RuntimeError("Получен пустой файл. Повторите загрузку.")
     if not request.audio and request.container == "mp4":
         events.emit("status", message="Подготавливаем совместимый MP4…")
-        ensure_compatible_mp4(final, Path(options["ffmpeg_location"]))
+        ensure_compatible_mp4(final, Path(options["ffmpeg_location"]),
+                              allow_silent=allow_silent and result.get("acodec") in (None, "none"))
     # Publish atomically without leaving an empty/partial destination on cancellation.
     destination = unique_destination(output, final.name)
     while True:

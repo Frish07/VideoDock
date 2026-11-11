@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
                                QScrollArea, QSizePolicy, QStackedWidget, QTextEdit,
                                QVBoxLayout, QWidget)
 
-from .core import DownloadRequest, format_time, normalize_url, resource_root, validate_range
+from .core import PLATFORMS, DownloadRequest, format_time, normalize_url, resource_root, validate_range
 from .style import STYLE
 from . import __version__
 from .i18n import LANGUAGES, translate
@@ -109,7 +109,7 @@ class Store:
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("VideoDock — YouTube загрузчик")
+        self.setWindowTitle("VideoDock — Загрузчик видео")
         self.setWindowIcon(QIcon(make_logo(128)))
         self.resize(1120, 850)
         self.setMinimumSize(900, 660)
@@ -198,7 +198,6 @@ class MainWindow(QMainWindow):
         heading_text.addWidget(label("Новая загрузка", "heading"))
         heading_text.addWidget(label("Целое видео, нужный момент или только звук — в пару кликов.", "muted"))
         heading.addLayout(heading_text, 1)
-        heading.addWidget(label("YouTube", "badge"), 0, Qt.AlignmentFlag.AlignTop)
         layout.addLayout(heading)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -212,8 +211,8 @@ class MainWindow(QMainWindow):
         self.source_card, source = card("01   Ссылка на видео")
         row = QHBoxLayout()
         self.url = QLineEdit()
-        self.bind(self.url, "setAccessibleName", "Ссылка на YouTube")
-        self.bind(self.url, "setPlaceholderText", "Вставьте ссылку youtube.com или youtu.be…")
+        self.bind(self.url, "setAccessibleName", "Ссылка на видео")
+        self.bind(self.url, "setPlaceholderText", "Вставьте ссылку на видео…")
         self.url.setClearButtonEnabled(True)
         self.url.textChanged.connect(self.url_changed)
         self.url.returnPressed.connect(self.inspect)
@@ -223,6 +222,7 @@ class MainWindow(QMainWindow):
         row.addWidget(self.paste_button)
         row.addWidget(self.inspect_button)
         source.addLayout(row)
+        source.addWidget(label(PLATFORMS, "small", True))
         self.preview = QFrame()
         self.preview.setObjectName("preview")
         preview = QHBoxLayout(self.preview)
@@ -277,7 +277,7 @@ class MainWindow(QMainWindow):
         fields.addLayout(quality_col, 3)
         fields.addLayout(container_col, 2)
         fmt.addLayout(fields)
-        self.quality_hint = label("Разрешения от 144p — после проверки ссылки.", "small", True)
+        self.quality_hint = label("Доступные разрешения появятся после проверки ссылки.", "small", True)
         fmt.addWidget(self.quality_hint)
         options_row.addWidget(self.format_card, 6)
         self.trim_card, trim = card("03   Нужный фрагмент")
@@ -377,8 +377,8 @@ class MainWindow(QMainWindow):
         about_card, about_text = card("Видео и звук, которые всегда под рукой")
         about_text.addWidget(label("1. Вставьте ссылку на видео или перетащите её в окно.\n2. Нажмите «Найти видео» и выберите качество.\n3. При желании задайте фрагмент и нажмите «Скачать».", "status", True))
         about_text.addWidget(label("Видео: MP4, MKV, WebM. Аудио: MP3, M4A, WAV, Opus.\nИсходное качество выбирает максимальное доступное разрешение. MP4 сохраняется с видео H.264 и звуком AAC для совместимости с проигрывателями. WAV занимает больше места.", "muted", True))
-        about_text.addWidget(label("Для фрагментов используется точная обрезка с перекодированием: это может занять время. Прямые эфиры, закрытые ролики и платный контент не поддерживаются. YouTube иногда ограничивает загрузки из отдельных сетей.", "muted", True))
-        about_text.addWidget(label("Настройки и список последних файлов хранятся на этом компьютере. Видео загружаются напрямую с YouTube.\nОснова приложения: yt-dlp, FFmpeg, Qt for Python и Node.js.", "muted", True))
+        about_text.addWidget(label("Поддерживаются отдельные публичные видео с YouTube, TikTok, Instagram и Facebook. Сайт может запросить вход или ограничить загрузку. Обрезка фрагментов выполняется с перекодированием.", "muted", True))
+        about_text.addWidget(label("Настройки и список последних файлов хранятся на этом компьютере. Видео загружаются напрямую с сайта.\nВ приложении используются yt-dlp, FFmpeg, Qt for Python и Node.js.", "muted", True))
         about_layout.addWidget(about_card)
         about_layout.addStretch()
         about_layout.addWidget(label(f"VideoDock {__version__}", "small"))
@@ -417,7 +417,7 @@ class MainWindow(QMainWindow):
         self.retranslate_ui()
 
     def retranslate_ui(self):
-        self.setWindowTitle(self.t("VideoDock — YouTube загрузчик"))
+        self.setWindowTitle(self.t("VideoDock — Загрузчик видео"))
         self.translate_widgets(self.centralWidget())
         blocked = self.quality.blockSignals(True)
         self.quality.setItemText(0, self.t("Исходное / лучшее"))
@@ -442,9 +442,9 @@ class MainWindow(QMainWindow):
             self.video_details.setText(self.t("Нажмите «Найти видео», чтобы выбрать доступное качество."))
 
     def refresh_quality_hint(self):
-        source = ("MP3 — 192 кбит/с. M4A и Opus — исходный звук, когда доступен." if self.audio_mode.isChecked()
+        source = ("MP3 при конвертации — 192 кбит/с. Подходящие исходные дорожки копируются." if self.audio_mode.isChecked()
                   else "Доступные разрешения этого ролика." if self.metadata
-                  else "Разрешения от 144p — после проверки ссылки.")
+                  else "Доступные разрешения появятся после проверки ссылки.")
         self.quality_hint.setText(self.t(source))
 
     def show_page(self, index):

@@ -38,7 +38,8 @@ def main():
     shutil.copy2(root / "THIRD_PARTY_NOTICES.md", output / "THIRD_PARTY_NOTICES.md")
     licenses = output / "licenses"
     licenses.mkdir(exist_ok=True)
-    for package in ["PySide6-Essentials", "shiboken6", "yt-dlp", "yt-dlp-ejs", "imageio-ffmpeg", "certifi"]:
+    for package in ["PySide6-Essentials", "shiboken6", "yt-dlp", "yt-dlp-ejs", "imageio-ffmpeg",
+                    "certifi", "curl-cffi", "cffi", "pycparser"]:
         distribution = importlib.metadata.distribution(package)
         for file in distribution.files or []:
             name = str(file).lower()
@@ -48,7 +49,8 @@ def main():
                     target = licenses / package / str(file)
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(path, target)
-    versions = {p: importlib.metadata.version(p) for p in ["PySide6-Essentials", "yt-dlp", "yt-dlp-ejs", "imageio-ffmpeg", "pyinstaller"]}
+    versions = {p: importlib.metadata.version(p) for p in
+                ["PySide6-Essentials", "yt-dlp", "yt-dlp-ejs", "curl-cffi", "imageio-ffmpeg", "pyinstaller"]}
     (output / "versions.json").write_text(json.dumps(versions, indent=2), encoding="utf-8")
     report = root / "build" / "ui-startup-check.json"
     report.unlink(missing_ok=True)

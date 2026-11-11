@@ -6,10 +6,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 
-def ensure_compatible_mp4(source: Path, ffmpeg: Path) -> None:
+def ensure_compatible_mp4(source: Path, ffmpeg: Path, *, allow_silent: bool = False) -> None:
     """Keep compatible tracks and convert the rest before publishing an MP4."""
     command = [str(ffmpeg), "-hide_banner", "-nostdin"]
-    streams = ["-i", str(source), "-map", "0:V:0", "-map", "0:a:0"]
+    audio_map = "0:a:0?" if allow_silent else "0:a:0"
+    streams = ["-i", str(source), "-map", "0:V:0", "-map", audio_map]
     run_options = {
         "capture_output": True, "encoding": "utf-8", "errors": "replace",
         "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0),
@@ -22,22 +23,24 @@ def ensure_compatible_mp4(source: Path, ffmpeg: Path) -> None:
     videos = re.findall(r"^\s*Stream #0:\d+[^\n]*?: Video: (.+)$", input_report, re.MULTILINE)
     video = next((stream for stream in videos if "(attached pic)" not in stream), "")
     audio = re.search(r"^\s*Stream #0:\d+[^\n]*?: Audio: (.+)$", input_report, re.MULTILINE)
-    if probe.returncode or not video or not audio:
+    if probe.returncode or not video or (not audio and not allow_silent):
         raise RuntimeError(f"Не удалось проверить видео и звук в файле MP4.\n\n{probe.stderr.strip()}")
 
     copy_video = re.match(r"h264 \((?:Constrained Baseline|Baseline|Main|High)\)[^,]*, yuv420p(?:[,(]|$)",
                           video)
-    copy_audio = re.match(r"aac \(LC\)[^,]*, (?:44100|48000) Hz, (?:mono|stereo),", audio[1])
-    if copy_video and copy_audio:
+    copy_audio = audio and re.match(r"aac \(LC\)[^,]*, (?:44100|48000) Hz, (?:mono|stereo),", audio[1])
+    if copy_video and (copy_audio or not audio):
         return
 
     video_options = ["-c:v", "copy"] if copy_video else [
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "high", "-preset", "fast", "-crf", "18",
         "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
     ]
-    audio_options = ["-c:a", "copy"] if copy_audio else [
-        "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "192k", "-ac", "2", "-ar", "48000",
-    ]
+    audio_options = []
+    if audio:
+        audio_options = ["-c:a", "copy"] if copy_audio else [
+            "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "192k", "-ac", "2", "-ar", "48000",
+        ]
     with TemporaryDirectory(dir=source.parent, prefix=".compat-") as directory:
         converted = Path(directory) / "compatible.mp4"
         result = subprocess.run(
