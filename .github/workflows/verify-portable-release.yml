@@ -1,0 +1,152 @@
+name: Verify VideoDock v1.2.0 portable ZIP
+
+on:
+  push:
+    branches: [ci/verify-portable-v1.2.0]
+
+permissions: {}
+
+jobs:
+  verify:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Download and extract the published ZIP
+        shell: pwsh
+        run: |
+          $work = Join-Path $env:RUNNER_TEMP 'videodock-release-test'
+          New-Item -ItemType Directory -Path $work | Out-Null
+          $zip = Join-Path $work 'VideoDock-1.2.0-Windows-x64.zip'
+          $url = 'https://github.com/Frish07/VideoDock/releases/download/v1.2.0/VideoDock-1.2.0-Windows-x64.zip'
+          curl.exe --fail --silent --show-error --location --max-time 120 --output $zip $url
+          if ($LASTEXITCODE -ne 0) { throw 'Could not download the release asset.' }
+          $expected = '77f788a4f3e23b55275e4b5b08eafd38238ec5db4b8a02a3d6a5b8d68d6906bb'
+          if ((Get-FileHash -LiteralPath $zip).Hash -ne $expected) { throw 'Release ZIP checksum mismatch.' }
+          Expand-Archive -LiteralPath $zip -DestinationPath $work
+          "VIDEODOCK_TEST_ROOT=$work" >> $env:GITHUB_ENV
+          "VIDEODOCK_CONFIG_DIR=$(Join-Path $work 'config')" >> $env:GITHUB_ENV
+
+      - name: Verify the UI and bundled runtimes with a Windows-only PATH
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          foreach ($variable in @('PYTHONHOME', 'PYTHONPATH', 'NODE_PATH', 'IMAGEIO_FFMPEG_EXE')) {
+            Remove-Item -LiteralPath "Env:$variable" -ErrorAction SilentlyContinue
+          }
+          $work = $env:VIDEODOCK_TEST_ROOT
+          $app = Join-Path $work 'VideoDock'
+          $exe = Join-Path $app 'VideoDock.exe'
+          $ffmpeg = Join-Path $app '_internal\tools\ffmpeg.exe'
+          $node = Join-Path $app '_internal\tools\node.exe'
+          Set-Location -LiteralPath $work
+          Write-Host "PATH: $env:PATH"
+          $external = Get-Command -Name python, python3, pip, node, ffmpeg, yt-dlp -CommandType Application -ErrorAction SilentlyContinue
+          if ($external) { throw "Unexpected executable on PATH: $($external.Source -join ', ')" }
+
+          $ui = Join-Path $work 'ui.json'
+          $process = Start-Process -FilePath $exe -ArgumentList @('--check-ui', ('"{0}"' -f $ui)) -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw "VideoDock UI failed to start: $($process.ExitCode)" }
+          $report = Get-Content -LiteralPath $ui -Raw | ConvertFrom-Json
+          if ($report.version -ne '1.2.0' -or !$report.frozen -or !$report.download_enabled -or
+              ($report.languages -join ',') -ne 'ru,en') {
+            throw "Unexpected UI report: $($report | ConvertTo-Json -Compress)"
+          }
+          Write-Host "UI report: $($report | ConvertTo-Json -Compress)"
+
+          $job = Join-Path $work 'diagnostics.json'
+          '{"action":"diagnostics"}' | Set-Content -LiteralPath $job -Encoding utf8
+          $process = Start-Process -FilePath $exe -ArgumentList @('--worker', ('"{0}"' -f $job)) -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw "VideoDock worker failed: $($process.ExitCode)" }
+          $diagnostics = Get-Content -LiteralPath (Join-Path $work 'events.jsonl') |
+            ForEach-Object { $_ | ConvertFrom-Json } | Where-Object event -eq 'diagnostics'
+          if (!$diagnostics.available -or $diagnostics.direct.returncode -ne 0 -or
+              $diagnostics.ffmpeg -ne $ffmpeg -or $diagnostics.paths.ffmpeg -ne $ffmpeg) {
+            throw "Bundled FFmpeg was not found by the worker: $($diagnostics | ConvertTo-Json -Depth 5 -Compress)"
+          }
+          $answer = & $node -e 'console.log(6 * 7)'
+          if ($LASTEXITCODE -ne 0 -or $answer -ne '42') { throw 'Bundled Node.js failed to run JavaScript.' }
+          Write-Host "Bundled Node.js $(& $node --version)"
+
+          $sample = Join-Path $work 'sample.mp4'
+          $encode = @('-hide_banner', '-loglevel', 'error', '-nostdin',
+                      '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=24:duration=1',
+                      '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000:duration=1',
+                      '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', $sample)
+          & $ffmpeg @encode
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled FFmpeg failed to encode H.264 and AAC.' }
+          & $ffmpeg -hide_banner -loglevel error -nostdin -xerror -i $sample -map '0:V:0' -map '0:a:0' -f null -
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled FFmpeg failed to decode the sample.' }
+          'The release ZIP passed UI startup, RU/EN switching, worker diagnostics, Node.js and H.264/AAC encoding and decoding with a Windows-only PATH.' >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Try a real MP4 clip from each supported site
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          foreach ($variable in @('PYTHONHOME', 'PYTHONPATH', 'NODE_PATH', 'IMAGEIO_FFMPEG_EXE')) {
+            Remove-Item -LiteralPath "Env:$variable" -ErrorAction SilentlyContinue
+          }
+          $work = $env:VIDEODOCK_TEST_ROOT
+          $app = Join-Path $work 'VideoDock'
+          $exe = Join-Path $app 'VideoDock.exe'
+          $ffmpeg = Join-Path $app '_internal\tools\ffmpeg.exe'
+          Set-Location -LiteralPath $work
+          $sources = [ordered]@{
+            Facebook = 'https://www.facebook.com/reel/1580303173210336/'
+            Instagram = 'https://www.instagram.com/reel/CDUMkliABpa/'
+            TikTok = 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758'
+            YouTube = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ'
+          }
+          $checks = foreach ($source in $sources.GetEnumerator()) {
+            $test = Join-Path $work $source.Key
+            $out = Join-Path $test 'output'
+            New-Item -ItemType Directory -Path $test | Out-Null
+            $job = Join-Path $test 'job.json'
+            @{
+              action = 'download'
+              request = @{
+                url = $source.Value
+                directory = $out
+                container = 'mp4'
+                trim = $true
+                start = '1'
+                end = '4'
+              }
+              staging = Join-Path $out '.videodock-test'
+            } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $job -Encoding utf8
+            $process = Start-Process -FilePath $exe -ArgumentList @('--worker', ('"{0}"' -f $job)) -PassThru -WindowStyle Hidden
+            [pscustomobject]@{ Name = $source.Key; Directory = $test; Process = $process }
+          }
+
+          '### Live download checks' >> $env:GITHUB_STEP_SUMMARY
+          $failed = 0
+          foreach ($check in $checks) {
+            try {
+              if (!$check.Process.WaitForExit(90000)) {
+                $check.Process.Kill($true)
+                throw 'The download did not finish in 90 seconds.'
+              }
+              $events = Get-Content -LiteralPath (Join-Path $check.Directory 'events.jsonl') |
+                ForEach-Object { $_ | ConvertFrom-Json }
+              $complete = $events | Where-Object event -eq 'complete'
+              if ($check.Process.ExitCode -ne 0 -or !$complete -or !(Test-Path -LiteralPath $complete.path -PathType Leaf)) {
+                $errorEvent = $events | Where-Object event -eq 'error' | Select-Object -Last 1
+                throw "Worker exit code $($check.Process.ExitCode). $($errorEvent.message)"
+              }
+              $mediaReport = (& $ffmpeg -hide_banner -nostdin -xerror -i $complete.path -map '0:V:0' -map '0:a:0' -af volumedetect -f null - 2>&1 | Out-String)
+              if ($LASTEXITCODE -ne 0 -or $mediaReport -notmatch 'Video: h264 ' -or
+                  $mediaReport -notmatch 'Audio: aac \(LC\)' -or
+                  $mediaReport -notmatch 'Duration: 00:00:0[23]\.\d\d' -or
+                  $mediaReport -notmatch 'max_volume:\s*(-?[\d.]+) dB' -or [double]$Matches[1] -lt -85) {
+                throw "The resulting clip did not decode as a three-second H.264/AAC video with sound. $mediaReport"
+              }
+              Write-Host "$($check.Name): passed"
+              "- **$($check.Name)** passed. The MP4 clip has H.264 video and audible AAC." >> $env:GITHUB_STEP_SUMMARY
+            } catch {
+              $message = $_.Exception.Message
+              Write-Warning "$($check.Name): $message"
+              "- **$($check.Name)** failed. $($message -split '\r?\n' | Select-Object -First 1)" >> $env:GITHUB_STEP_SUMMARY
+              $failed++
+            }
+          }
+          if ($failed) { throw "$failed live download check(s) failed. See the job summary and log." }
