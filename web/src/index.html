@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Download direct media links and convert your own files locally in the browser.">
+  <meta name="theme-color" content="#101319">
+  <title>VideoDock Web</title>
+  <link rel="icon" href="./videodock.ico">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#download" data-text="skip">Skip to tools</a>
+  <header class="site-header" id="top">
+    <div class="shell header-inner">
+      <a class="brand" href="#top">
+        <img src="./videodock.ico" width="38" height="38" alt="">
+        <span>VideoDock <span class="accent">Web</span></span>
+      </a>
+      <nav aria-label="Main navigation" data-aria="navLabel">
+        <a href="#download" data-text="navDownload">Download</a>
+        <a href="#convert" data-text="navConvert">Convert</a>
+        <a href="#features" data-text="navFeatures">Features</a>
+        <a href="#desktop" data-text="navDesktop">Desktop</a>
+      </nav>
+      <div class="language" role="group" aria-label="Language" data-aria="language">
+        <button type="button" data-language="ru" aria-label="Русский" aria-pressed="false">RU</button>
+        <button type="button" data-language="en" aria-label="English" aria-pressed="true">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero" aria-labelledby="intro-title">
+      <div>
+        <h1 id="intro-title" data-text="introTitle">Video tools<br>in your browser</h1>
+        <p data-text="introCopy">Save media from a direct link, trim a clip or extract its audio. Your files stay on your device.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#download"><span aria-hidden="true">↓</span> <span data-text="navDownload">Download</span></a>
+          <a class="button secondary" href="#convert"><span data-text="navConvert">Convert</span> <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="media-art"><span class="play"></span></div>
+        <div class="timeline-art"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="audio-art"></div>
+        <span class="format-art mp4">MP4</span><span class="format-art mp3">MP3</span>
+      </div>
+    </section>
+
+    <div class="tools">
+      <section id="download" class="panel" aria-labelledby="download-title">
+        <div class="panel-heading"><span class="tool-symbol" aria-hidden="true">↓</span><h2 id="download-title" data-text="downloadTitle">Download from a link</h2></div>
+        <p class="panel-lead" data-text="downloadLead">Use a direct link to a video or audio file.</p>
+        <form id="download-form" novalidate>
+          <label for="source-url" data-text="urlLabel">Media URL</label>
+          <input id="source-url" type="url" inputmode="url" placeholder="https://example.com/video.mp4" autocomplete="off" spellcheck="false">
+          <div class="notice">
+            <p data-text="warning">⚠️ Please note! VideoDock Web runs directly in your browser. Due to browser limitations and restrictions imposed by some video platforms, certain videos may not be available for download. For maximum compatibility and the complete feature set, we recommend using VideoDock Desktop.</p>
+            <a class="inline-link" href="https://github.com/Frish07/VideoDock/releases/latest" data-text="desktopLink">Download VideoDock Desktop</a>
+          </div>
+          <div class="actions">
+            <button id="download-submit" class="button primary" type="submit" data-text="downloadSubmit">Check and download</button>
+            <button id="download-cancel" class="button secondary" type="button" hidden data-text="cancel">Cancel</button>
+          </div>
+          <div id="download-feedback" class="feedback" hidden>
+            <div id="download-status" role="status" aria-live="polite"></div>
+            <progress id="download-progress" aria-label="Download progress" data-aria="downloadProgress" max="1" hidden></progress>
+          </div>
+          <div class="result-actions">
+            <a id="download-desktop" class="button secondary" href="https://github.com/Frish07/VideoDock/releases/latest" hidden data-text="desktopLink">Download VideoDock Desktop</a>
+            <a id="download-save" class="button secondary" download hidden data-text="saveAgain">Save again</a>
+          </div>
+        </form>
+      </section>
+
+      <section id="convert" class="panel" aria-labelledby="convert-title">
+        <div class="panel-heading"><span class="tool-symbol" aria-hidden="true">↔</span><h2 id="convert-title" data-text="convertTitle">Convert video and audio</h2></div>
+        <p class="panel-lead" data-text="convertLead">Choose a file to convert, trim or extract audio.</p>
+        <form id="convert-form" novalidate>
+          <fieldset id="convert-settings">
+            <label class="drop-zone" id="drop-zone" for="file-input">
+              <input id="file-input" type="file" accept="video/*,audio/*,.mkv,.m4a,.mov,.avi,.flac,.ogg,.opus">
+              <span class="file-glyph" aria-hidden="true">↑</span>
+              <span data-text="chooseFile">Choose a media file</span>
+              <span class="drop-hint" data-text="dropHint">or drop it here</span>
+            </label>
+            <p id="file-name" class="file-name" aria-live="polite" hidden></p>
+            <p id="file-limit" class="helper"></p>
+            <div class="fields">
+              <label for="format"><span data-text="formatLabel">Output format</span>
+                <select id="format">
+                  <optgroup label="Video" data-attr-label="video">
+                    <option value="mp4">MP4 · H.264 / AAC</option>
+                    <option value="webm">WebM · VP8 / Vorbis</option>
+                  </optgroup>
+                  <optgroup label="Audio" data-attr-label="audio">
+                    <option value="mp3">MP3</option>
+                    <option value="m4a">M4A · AAC</option>
+                    <option value="wav">WAV · PCM</option>
+                  </optgroup>
+                </select>
+              </label>
+              <label for="quality"><span data-text="qualityLabel">Quality</span><select id="quality"></select></label>
+            </div>
+            <div class="fields">
+              <label for="start"><span data-text="start">Start</span>
+                <input id="start" type="text" placeholder="0:00" spellcheck="false" aria-describedby="trim-help">
+              </label>
+              <label for="end"><span data-text="end">End</span>
+                <input id="end" type="text" data-placeholder="endPlaceholder" placeholder="End of file" spellcheck="false" aria-describedby="trim-help">
+              </label>
+            </div>
+            <p id="trim-help" class="helper" data-text="trimHint">Leave both times blank for the full file. Example: 0:10.5 to 1:20.</p>
+          </fieldset>
+          <div class="actions">
+            <button id="convert-submit" class="button primary" type="submit" data-text="convertSubmit">Convert file</button>
+            <button id="convert-cancel" class="button secondary" type="button" hidden data-text="cancel">Cancel</button>
+          </div>
+          <div id="convert-feedback" class="feedback" hidden>
+            <div id="convert-status" role="status" aria-live="polite"></div>
+            <progress id="convert-progress" aria-label="Conversion progress" data-aria="convertProgress" max="1" hidden></progress>
+          </div>
+          <div class="result-actions"><a id="convert-save" class="button secondary" download hidden data-text="saveResult">Save result</a></div>
+        </form>
+      </section>
+    </div>
+
+    <section id="features" class="features" aria-labelledby="features-title">
+      <h2 id="features-title" data-text="featuresTitle">What you can do</h2>
+      <div class="feature-grid">
+        <article><h3 data-text="featureDownload">Direct downloads</h3><p data-text="featureDownloadCopy">Save video or audio from a direct file URL when the host allows browser access.</p></article>
+        <article><h3 data-text="featureConvert">Trim and convert</h3><p data-text="featureConvertCopy">Choose timestamps, adjust output quality or save just the audio track.</p></article>
+        <article><h3 data-text="featureLocal">Local processing</h3><p data-text="featureLocalCopy">FFmpeg runs in a Web Worker on your device. VideoDock Web never uploads your files.</p></article>
+      </div>
+    </section>
+
+    <div class="more">
+      <section id="limits" class="panel" aria-labelledby="limits-title">
+        <h2 id="limits-title" data-text="limitsTitle">Browser limits</h2>
+        <p data-text="limitsLinks">YouTube, TikTok, Instagram and Facebook pages may restrict access to their media. Paste a direct file URL or open the link in VideoDock Desktop.</p>
+        <p data-text="limitsMemory">Conversion uses memory and CPU on your device. Shorter clips and lower resolutions use fewer resources.</p>
+      </section>
+      <section id="desktop" class="panel desktop-panel" aria-labelledby="desktop-title">
+        <div>
+          <h2 id="desktop-title">VideoDock Desktop</h2>
+          <p data-text="desktopCopy">The Windows app supports public links from YouTube, TikTok, Instagram and Facebook and processes files locally.</p>
+          <a class="button primary" href="https://github.com/Frish07/VideoDock/releases/latest" data-text="desktopLink">Download VideoDock Desktop</a>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer class="shell site-footer">
+    <span>VideoDock Web</span>
+    <a href="#limits" data-text="limitsTitle">Browser limits</a>
+    <a href="./THIRD_PARTY_NOTICES.txt" data-text="licenses">Licenses</a>
+    <a href="https://github.com/Frish07/VideoDock">GitHub <span aria-hidden="true">↗</span></a>
+  </footer>
+  <noscript><p class="noscript">Для VideoDock Web нужен JavaScript. VideoDock Web requires JavaScript.</p></noscript>
+</body>
+</html>

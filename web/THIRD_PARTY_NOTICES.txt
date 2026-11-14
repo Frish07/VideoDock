@@ -1,0 +1,17 @@
+VideoDock Web includes the unmodified upstream FFmpeg.wasm packages.
+
+The JavaScript wrapper @ffmpeg/ffmpeg 0.12.15 is released under MIT.
+The single-threaded @ffmpeg/core 0.12.10 build is GPL-2.0-or-later and
+includes codec libraries under their respective licenses.
+
+Upstream release, source code, license and build files:
+https://github.com/ffmpegwasm/ffmpeg.wasm/releases/tag/v12.15
+https://github.com/ffmpegwasm/ffmpeg.wasm/tree/v12.15
+https://github.com/ffmpegwasm/ffmpeg.wasm/blob/v12.15/LICENSE
+https://github.com/ffmpegwasm/ffmpeg.wasm/blob/v12.15/Dockerfile
+
+The Dockerfile records the source repositories, versions and build
+configuration of the FFmpeg core and its linked libraries.
+FFmpeg 5.1.4 source and license:
+https://github.com/FFmpeg/FFmpeg/tree/n5.1.4
+https://github.com/FFmpeg/FFmpeg/blob/n5.1.4/COPYING.GPLv2

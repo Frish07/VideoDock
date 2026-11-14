@@ -2,7 +2,34 @@
 
 [Документация на русском](README.md)
 
-A Windows 10/11 desktop downloader for public videos from YouTube, TikTok, Instagram and Facebook. The interface is available in Russian and English.
+VideoDock has two editions with Russian and English interfaces.
+
+| Edition | Features |
+| --- | --- |
+| [VideoDock Desktop](https://github.com/Frish07/VideoDock/releases/latest) | Portable Windows 10/11 app with the full VideoDock feature set. Downloads public videos from YouTube, TikTok, Instagram and Facebook, trims clips and extracts audio locally. Use Desktop for the widest compatibility. |
+| [VideoDock Web](https://frish07.github.io/VideoDock/) | Browser-based tools with no installation or backend. Downloads direct media URLs when the host allows CORS, and converts or trims local files using FFmpeg.wasm. |
+
+## VideoDock Web
+
+Open [VideoDock Web](https://frish07.github.io/VideoDock/) and paste a direct media URL or drop a file into the converter. Available outputs include MP4 (H.264 / AAC), WebM (VP8 / Vorbis), MP3, M4A and WAV. You can enter clip timestamps, limit resolution or choose an audio bitrate, then save the result.
+
+Direct downloads require access from the host site. For YouTube, TikTok, Instagram and Facebook page links, the web app directs users to [VideoDock Desktop](https://github.com/Frish07/VideoDock/releases/latest). On first use the converter fetches about 31 MB from GitHub Pages. Input limits depend on the device. Media is processed in a Web Worker and stays in the browser.
+
+### Build and publish the web app
+
+Run these commands from the repository root with Node.js 22+ and npm.
+
+```sh
+cd web
+npm ci --ignore-scripts
+npm run build
+```
+
+The static site is built to `web/dist/`. Serve this folder over HTTP to preview it. Relative asset paths also work at `/VideoDock/`. The single-threaded FFmpeg.wasm core runs without COOP/COEP headers.
+
+In **Settings → Pages**, choose **GitHub Actions** as the **Source**. Open **Actions → Deploy VideoDock Web → Run workflow** and choose the `main` branch. Future updates to `web/` on `main` deploy automatically.
+
+## VideoDock Desktop
 
 ## Run the app
 
