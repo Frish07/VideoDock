@@ -34,6 +34,7 @@ def main():
     output = root / "dist" / "VideoDock"
     shutil.copy2(root / "README.md", output / "README.md")
     shutil.copy2(root / "README.en.md", output / "README.en.md")
+    shutil.copy2(root / "README.ru.md", output / "README.ru.md")
     shutil.copy2(root / "CHECKS.md", output / "CHECKS.md")
     shutil.copy2(root / "THIRD_PARTY_NOTICES.md", output / "THIRD_PARTY_NOTICES.md")
     licenses = output / "licenses"

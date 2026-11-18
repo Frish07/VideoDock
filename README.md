@@ -1,23 +1,23 @@
 # VideoDock
 
-[English documentation](README.en.md)
+[Русский](README.ru.md)
 
-VideoDock доступен в двух версиях с русским и английским интерфейсом.
+VideoDock has two editions with Russian and English interfaces.
 
-| Версия | Возможности |
+| Edition | Features |
 | --- | --- |
-| [VideoDock Desktop](https://github.com/Frish07/VideoDock/releases/latest) | Переносимое приложение для Windows 10/11 с полным набором инструментов VideoDock. Скачивает публичные видео с YouTube, TikTok, Instagram и Facebook, обрезает ролики и сохраняет аудио. Обработка локальная. Рекомендуется для максимальной совместимости. |
-| [VideoDock Web](https://frish07.github.io/VideoDock/) | Работает в браузере без установки и собственного сервера. Скачивает видео и аудио по прямым ссылкам, когда источник разрешает CORS. Конвертирует и обрезает локальные файлы через FFmpeg.wasm. |
+| [VideoDock Desktop](https://github.com/Frish07/VideoDock/releases/latest) | Portable Windows 10/11 app with the full VideoDock feature set. Downloads public videos from YouTube, TikTok, Instagram and Facebook, trims clips and extracts audio locally. Use Desktop for the widest compatibility. |
+| [VideoDock Web](https://frish07.github.io/VideoDock/) | Browser-based tools with no installation or backend. Downloads direct media URLs when the host allows CORS, and converts or trims local files using FFmpeg.wasm. |
 
 ## VideoDock Web
 
-Откройте [VideoDock Web](https://frish07.github.io/VideoDock/) и вставьте прямой URL медиафайла либо перетащите файл в конвертер. Доступны MP4 (H.264 / AAC), WebM (VP8 / Vorbis), MP3, M4A и WAV. Можно задать начало и конец фрагмента, выбрать предельное разрешение или битрейт аудио. Результат сохраняется на устройство.
+Open [VideoDock Web](https://frish07.github.io/VideoDock/) and paste a direct media URL or drop a file into the converter. Available outputs include MP4 (H.264 / AAC), WebM (VP8 / Vorbis), MP3, M4A and WAV. You can enter clip timestamps, limit resolution or choose an audio bitrate, then save the result.
 
-Прямое скачивание зависит от разрешений исходного сайта. Для страниц YouTube, TikTok, Instagram и Facebook веб-версия предложит [VideoDock Desktop](https://github.com/Frish07/VideoDock/releases/latest). При первом запуске конвертер загружает около 31 МБ с GitHub Pages. Размер входного файла ограничен в зависимости от устройства. Обработка идёт в Web Worker, файлы остаются в браузере.
+Direct downloads require access from the host site. For YouTube, TikTok, Instagram and Facebook page links, the web app directs users to [VideoDock Desktop](https://github.com/Frish07/VideoDock/releases/latest). On first use the converter fetches about 31 MB from GitHub Pages. Input limits depend on the device. Media is processed in a Web Worker and stays in the browser.
 
-### Сборка и публикация веб-версии
+### Build and publish the web app
 
-Для разработчика нужны Node.js 22+ и npm. Команды выполняются из корня репозитория.
+Run these commands from the repository root with Node.js 22+ and npm.
 
 ```sh
 cd web
@@ -25,52 +25,47 @@ npm ci --ignore-scripts
 npm run build
 ```
 
-Готовый статический сайт появится в `web/dist/`. Для проверки в браузере обслуживайте папку через HTTP. Ресурсы подключаются относительными путями, поэтому тот же результат работает по адресу `/VideoDock/`. Однопоточная сборка FFmpeg.wasm работает без заголовков COOP/COEP.
+The static site is built to `web/dist/`. Serve this folder over HTTP to preview it. Relative asset paths also work at `/VideoDock/`. The single-threaded FFmpeg.wasm core runs without COOP/COEP headers.
 
-На GitHub откройте **Settings → Pages** и выберите **GitHub Actions** в поле **Source**. Во вкладке **Actions → Deploy VideoDock Web** нажмите **Run workflow**, выбрав ветку `main`. Дальнейшие изменения в `web/` на `main` запускают публикацию автоматически.
+In **Settings → Pages**, choose **GitHub Actions** as the **Source**. Open **Actions → Deploy VideoDock Web → Run workflow** and choose the `main` branch. Future updates to `web/` on `main` deploy automatically.
 
 ## VideoDock Desktop
 
-## Язык интерфейса
+## Run the app
 
-Внизу боковой панели выберите **Русский** или **English** в списке **Язык / Language**. Перевод применяется сразу, без перезапуска, и сохраняется для следующих запусков. Переключение доступно во время загрузки и сохраняет ссылку, качество, формат, таймкоды, выбранную папку и прогресс.
+In the project folder, open `dist/VideoDock/VideoDock.exe` or `Запустить VideoDock.cmd`. If you have `VideoDock-Windows.zip`, extract the entire archive and run `VideoDock/VideoDock.exe`. The portable build includes Python, FFmpeg, Node.js and the required libraries. Keep the entire `VideoDock` folder, including `_internal`, when moving it to another computer.
 
-Переведены основные страницы, подсказки, статусы и сообщения об ошибках. Названия роликов, пути к файлам и технические сообщения yt-dlp остаются в исходном виде. По умолчанию используется русский язык. Язык хранится в поле `language` настроек (`ru` или `en`).
+## Choose the language
 
-## Запуск готового приложения
+Use the **Язык / Language** selector at the bottom of the sidebar to choose **Русский** or **English**. The interface updates immediately and remembers your choice. You can switch during a download without resetting the link, quality, timestamps, destination or progress. Russian is the default language.
 
-В проекте откройте `dist/VideoDock/VideoDock.exe` или `Запустить VideoDock.cmd` в корне. Если используете `VideoDock-Windows.zip`, распакуйте его и откройте `VideoDock/VideoDock.exe`. Установка Python, Node.js и FFmpeg для готовой сборки не нужна. Для переноса на другой компьютер копируйте **всю папку VideoDock**, включая `_internal`.
+The app's pages, hints, statuses and errors are translated. Video titles, file paths and technical extractor messages keep their original text. Native Windows dialogs follow Windows' own language settings.
 
-## Как пользоваться
+## Download a video or audio
 
-1. Вставьте ссылку на видео с YouTube, TikTok, Instagram или Facebook либо перетащите её в окно.
-2. Нажмите **Найти видео**. Приложение покажет название, канал, длительность и доступные разрешения.
-3. Выберите **Видео со звуком** или **Только аудио**, качество и формат.
-4. Чтобы сохранить фрагмент, включите **Скачать только часть видео** и укажите начало и конец, например `1:45` и `6:50`. Поддерживаются `ЧЧ:ММ:СС`, `ММ:СС`, секунды и доли секунды. Пустое начало означает 0:00, пустой конец — конец видео.
-5. Выберите папку и нажмите **Скачать**. По умолчанию используется системная папка **Загрузки**, в том числе перенесённая пользователем. Другая выбранная папка запоминается.
+1. Paste a video link from YouTube, TikTok, Instagram or Facebook, or drag it into the window, then click **Find video**.
+2. Choose **Video with audio** or **Audio only**, the quality and file format.
+3. To save a clip, enable **Download only part of the video** and enter a start and end, such as `1:45` and `6:50`. Hours, minutes, seconds and fractional seconds are supported. A blank start means 0:00; a blank end means the end of the video.
+4. Choose a folder and click **Download**. The default is your system **Downloads** folder. Other folders are remembered.
 
-После скачивания можно открыть файл или папку. Последние 30 успешных загрузок доступны во вкладке **Загрузки**. Существующие файлы не перезаписываются: к имени добавляется номер. Отмена останавливает также дочерний FFmpeg и удаляет временные файлы текущей операции.
+After downloading, open the file or its folder. The **Downloads** page shows the last 30 successful downloads. Existing files are preserved by adding a number to the new filename. Canceling stops the worker and FFmpeg and removes the current operation's temporary files.
 
-## Качество и форматы
+## Quality and formats
 
-- **Исходное / лучшее** — максимальное доступное разрешение ролика. Выбор разрешения ограничивает его сверху; используется выбранное или ближайшее доступное ниже. Минимальный стандартный вариант YouTube обычно 144p. Качество выше доступного у источника не создаётся.
-- **MP4** сохраняется с видео H.264 и звуком AAC (моно или стерео), чтобы открываться в штатных проигрывателях. При полном скачивании совместимые дорожки копируются, остальные преобразуются автоматически с сохранением разрешения.
-- **MKV** допускает самый широкий выбор исходных потоков. **WebM** использует исходные потоки, совместимые с этим контейнером.
-- Аудио сохраняется в **MP3, M4A, WAV или Opus**. При конвертации в MP3 используется 192 кбит/с. Подходящие исходные дорожки копируются без повторного сжатия.
-- Фрагмент запрашивается через FFmpeg по указанному интервалу. Включена точная обрезка с перекодированием; длинные фрагменты и высокие разрешения обрабатываются дольше. Некоторые серверы могут передать больше данных, чем длительность фрагмента.
-- Индикатор показывает прогресс текущего потока. Видео и звук могут скачиваться последовательно. Во время обрезки и объединения показывается индикатор обработки и прошедшее время.
+- **Original / best** selects the highest available resolution. A selected resolution is an upper limit: the chosen resolution or the closest available lower one is used. YouTube's lowest standard option is usually 144p.
+- **MP4** uses H.264 video and AAC audio (mono or stereo) for playback in built-in players. Full downloads copy compatible tracks and convert the others automatically while retaining the resolution.
+- **MKV** supports the broadest set of source streams. **WebM** uses source streams compatible with that container.
+- Audio exports to **MP3, M4A, WAV or Opus**. MP3 conversion uses 192 kbps. Compatible source audio is copied without re-encoding.
+- Clips use FFmpeg with precise trimming and re-encoding. High resolutions and long clips can take longer to process. Depending on the media server, more data than the clip itself may be transferred.
+- Progress is shown per stream. Video and audio may be downloaded in sequence; trimming and merging show an activity indicator and elapsed time.
 
-Откройте ссылку на отдельный публичный ролик. Для Instagram и Facebook подходят также ссылки на Reels и публикации с одним видео. Доступные форматы и разрешения зависят от источника. Для исходно немых роликов TikTok, Instagram и Facebook выберите режим видео.
+Use a link to an individual public video. Instagram and Facebook also support Reels and posts with a single video. Available formats and resolutions depend on the source. Choose video mode for silent TikTok, Instagram and Facebook clips.
 
-Сайт может потребовать вход или ограничить доступ к ролику. Подробности доступны в **Журнале**. Используйте ролики, которые вы вправе сохранять.
+A site may require sign-in or restrict access to a video. Open **Log** for details. Download content you are entitled to save.
 
-Версия 1.0.1 отдельно показывает ошибки DNS, сертификата HTTPS, прокси, HTTP 403/429 и тайм-ауты. Общая ошибка загрузки больше не выдаётся за отсутствие интернета. Последняя ошибка и её журнал сохраняются рядом с настройками в `last-error.log`; полный текст также доступен при наведении на сообщение об ошибке.
+## Run from source
 
-Если окно не запускается из-за непредвиденного сбоя, отчёт сохраняется в `%LOCALAPPDATA%/VideoDock/VideoDock/startup-error.log`. Сборщик автоматически проверяет запуск окна готового `.exe` и переключение русского/английского языка перед сообщением об успешной сборке.
-
-## Запуск из исходников
-
-Для запуска нужны Python 3.11+ (проверено на 3.13) и Node.js 22+ в PATH для JavaScript-проверок YouTube.
+Requires Python 3.11+ (tested with 3.13) and Node.js 22+ on PATH.
 
 ```powershell
 python -m venv .venv
@@ -78,9 +73,11 @@ python -m venv .venv
 .\.venv\Scripts\python.exe app.py
 ```
 
-FFmpeg включён в пакет `imageio-ffmpeg`. Настройки и история лежат в `%LOCALAPPDATA%/VideoDock/VideoDock/settings.json` (точный путь определяет Qt). Временные видеофайлы лежат в `.videodock-*` в выбранной папке и удаляются после завершения или отмены. При аварийном завершении системы такую папку можно удалить вручную.
+FFmpeg is provided by `imageio-ffmpeg`. Settings and history are stored under `%LOCALAPPDATA%/VideoDock/VideoDock/settings.json`; Qt determines the exact location. The `language` setting is `ru` or `en`. The most recent error is saved alongside the settings in `last-error.log`. Unexpected startup errors are saved to `startup-error.log`.
 
-## Сборка и проверки
+Temporary media files use a `.videodock-*` folder in the selected destination and are removed on completion or cancellation. After an operating-system crash, leftover temporary folders can be removed manually.
+
+## Build and test
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
@@ -88,6 +85,6 @@ FFmpeg включён в пакет `imageio-ffmpeg`. Настройки и ис
 .\.venv\Scripts\python.exe build.py
 ```
 
-`build.py` собирает переносимую папку `dist/VideoDock` с Python, Qt, yt-dlp, FFmpeg, Node.js и EJS. Путь к Node.js можно передать через `--node C:\path\node.exe`. Зависимости зафиксированы в requirements; при изменениях YouTube следует обновить `yt-dlp[default]` вместе с EJS, повторить проверки и пересобрать приложение.
+`build.py` produces `dist/VideoDock` and checks that the packaged interface starts and switches between Russian and English. Supply a specific Node executable with `--node C:\path\node.exe`. Dependencies are pinned in the requirements files; if YouTube changes, update `yt-dlp[default]` with its matching EJS package, test and rebuild.
 
-Архитектура: `videodock/gui.py` — интерфейс и управление процессами; `core.py` — проверка ссылок, таймкодов и выбор качества; `worker.py` — отдельный рабочий процесс с событиями JSONL. Файлы передаются в итоговую папку только после успешной обработки.
+Source layout: `videodock/gui.py` provides the interface and process control, `i18n.py` contains translations, `core.py` validates input and chooses formats, and `worker.py` runs downloads in a separate process using JSONL events. Final files are published only after processing succeeds.

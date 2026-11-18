@@ -1,6 +1,6 @@
 # VideoDock
 
-[Документация на русском](README.md)
+[Русский](README.ru.md)
 
 VideoDock has two editions with Russian and English interfaces.
 
